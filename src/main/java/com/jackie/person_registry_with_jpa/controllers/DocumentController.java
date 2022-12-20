@@ -1,5 +1,6 @@
 package com.jackie.person_registry_with_jpa.controllers;
 
+import com.jackie.person_registry_with_jpa.entities.Document;
 import com.jackie.person_registry_with_jpa.message.DocumentResponse;
 import com.jackie.person_registry_with_jpa.message.ResponseMessage;
 import com.jackie.person_registry_with_jpa.services.DocumentService;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/document")
@@ -18,20 +20,25 @@ public class DocumentController {
     @Autowired
     private DocumentService service;
 
-    @PostMapping(consumes = "multipart/form-data",value = "/{fiscalCode}")
+    @PostMapping(consumes = "multipart/form-data", value = "/{fiscalCode}")
 
     public ResponseEntity<ResponseMessage> createDocument(@ModelAttribute("file") MultipartFile file,
                                                           @PathVariable("fiscalCode") String fiscalCode) {
         String message = "";
         try {
             service.createDocumentByFiscalCode(file, fiscalCode);
-
             message = "Uploaded the file successfully: " + file.getOriginalFilename();
             return ResponseEntity.status(HttpStatus.OK).body(new ResponseMessage(message));
         } catch (IOException e) {
             message = "Could not upload the file: " + file.getOriginalFilename() + "!";
             return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new ResponseMessage(message));
         }
+    }
+
+    @GetMapping("/{fiscalCode}")
+    public List<DocumentResponse> getAllByFiscalCode(@PathVariable("fiscalCode") String fiscalCode) throws IOException {
+
+        return service.getAllDocumentsByFiscalCode(fiscalCode);
     }
 
 }

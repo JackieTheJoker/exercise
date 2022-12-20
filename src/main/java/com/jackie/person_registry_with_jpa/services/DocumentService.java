@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface DocumentService {
 
-    List<Document> getAllDocumentsByFiscalCode();
+    List<DocumentResponse> getAllDocumentsByFiscalCode(String fiscalCode) throws IOException;
 
     void createDocumentByFiscalCode (MultipartFile file, String fiscalCode) throws IOException;
 

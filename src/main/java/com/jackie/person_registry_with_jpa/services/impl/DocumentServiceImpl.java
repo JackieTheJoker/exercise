@@ -7,6 +7,7 @@ import com.jackie.person_registry_with_jpa.message.DocumentResponse;
 import com.jackie.person_registry_with_jpa.repositories.DocumentRepository;
 import com.jackie.person_registry_with_jpa.services.DocumentService;
 import com.jackie.person_registry_with_jpa.services.PersonService;
+import com.jackie.person_registry_with_jpa.utilities.DecodedWrapper;
 import com.jackie.person_registry_with_jpa.utilities.FileUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -26,13 +28,24 @@ public class DocumentServiceImpl implements DocumentService {
     private DocumentRepository repo;
     @Autowired
     private FileUtil fileUtil;
-
     @Autowired
     private PersonService personService;
 
     @Override
-    public List<Document> getAllDocumentsByFiscalCode() {
-        return repo.findAll();
+    public List<DocumentResponse> getAllDocumentsByFiscalCode(String fiscalCode) {
+
+        Person person = personService.getPersonByFiscalCode(fiscalCode);
+        List<Document> documents = repo.findDocumentsByPerson(person);
+        List<DocumentResponse> decodedDocuments = new ArrayList<>();
+        for (Document d : documents){
+            DocumentResponse decodedDocument = new DocumentResponse();
+            DecodedWrapper file = new DecodedWrapper();
+            BeanUtils.copyProperties(d, file);
+            file.setDecoded(fileUtil.download(d.getFile()));
+            decodedDocument.setFile(file);
+            decodedDocuments.add(decodedDocument);
+        }
+        return decodedDocuments;
     }
 
     @Override
