@@ -6,7 +6,6 @@ public class MyCustomException extends RuntimeException {
     private int statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value();
 
     private String message;
-
     public MyCustomException() {}
 
     public MyCustomException(String message) {
@@ -17,6 +16,7 @@ public class MyCustomException extends RuntimeException {
         super(message);
         this.statusCode = statusCode;
     }
+
 
     public int getStatusCode() {
         return statusCode;
