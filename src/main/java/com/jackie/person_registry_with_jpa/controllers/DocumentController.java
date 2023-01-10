@@ -6,6 +6,7 @@ import com.jackie.person_registry_with_jpa.enums.TypeOfFile;
 import com.jackie.person_registry_with_jpa.exceptions.MyCustomException;
 import com.jackie.person_registry_with_jpa.message.DocumentResponse;
 import com.jackie.person_registry_with_jpa.message.ResponseMessage;
+import com.jackie.person_registry_with_jpa.repositories.DocumentRepository;
 import com.jackie.person_registry_with_jpa.services.DocumentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,9 +15,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
@@ -27,6 +28,8 @@ public class DocumentController {
 
     @Autowired
     private DocumentService service;
+    @Autowired
+    private DocumentRepository documentRepository;
 
     @PostMapping(consumes = {MULTIPART_FORM_DATA_VALUE, APPLICATION_JSON_VALUE}, value = "/{fiscalCode}")
 
@@ -45,15 +48,31 @@ public class DocumentController {
         }
     }
 
-    @GetMapping("/{fiscalCode}")
-    public ResponseEntity<List<DocumentResponse>> getAllByFiscalCode(@PathVariable("fiscalCode") String fiscalCode) throws IOException {
+    @GetMapping("/{fiscalCode}/all")
+    public ResponseEntity<List<TypeOfDoc>> getAllByFiscalCode(@PathVariable("fiscalCode") String fiscalCode) throws IOException {
+
+            return ResponseEntity.status(HttpStatus.FOUND).body(service.getAllDocumentsByFiscalCode(fiscalCode));
+        }
+
+    @DeleteMapping("/{fiscalCode}")
+    public ResponseEntity<ResponseMessage> deleteDocumentByFiscalCodeAndType(@PathVariable("fiscalCode") String fiscalCode,
+                                                                             @RequestParam String doc) throws IOException {
+        String message;
 
         try {
-            return ResponseEntity.status(HttpStatus.FOUND).body(service.getAllDocumentsByFiscalCode(fiscalCode));
-        } catch (IOException ioEx){
-           throw new IOException("Documenti non trovati");
-        } catch (Exception ex){
-            throw new MyCustomException("Errore");
+            service.deleteDocumentByFiscalCodeAndTypeOfDoc(fiscalCode, doc);
+            message = "Documento eliminato";
+            return ResponseEntity.status(HttpStatus.OK).body(new ResponseMessage(message));
+        } catch (Exception ex) {
+            message = "Documento non eliminato";
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new ResponseMessage(message));
         }
     }
+
+    @GetMapping(value = "/{fiscalCode}")
+    public ResponseEntity<byte[]> getDocumentByFiscalCodeAndType(@PathVariable("fiscalCode") String fiscalCode,
+                                                 @RequestParam String doc) throws IOException {
+        return ResponseEntity.status(HttpStatus.FOUND).body(service.getDocumentByFiscalCodeAndTypeOfDoc(fiscalCode, doc));
+    }
 }
+

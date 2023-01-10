@@ -1,11 +1,9 @@
 package com.jackie.person_registry_with_jpa.services.impl;
 
-import com.jackie.person_registry_with_jpa.controllers.PersonController;
 import com.jackie.person_registry_with_jpa.entities.Document;
 import com.jackie.person_registry_with_jpa.entities.Person;
 import com.jackie.person_registry_with_jpa.enums.TypeOfDoc;
 import com.jackie.person_registry_with_jpa.enums.TypeOfFile;
-import com.jackie.person_registry_with_jpa.exceptions.MyCustomException;
 import com.jackie.person_registry_with_jpa.message.DocumentResponse;
 import com.jackie.person_registry_with_jpa.repositories.DocumentRepository;
 import com.jackie.person_registry_with_jpa.services.DocumentService;
@@ -14,7 +12,6 @@ import com.jackie.person_registry_with_jpa.utilities.DecodedWrapper;
 import com.jackie.person_registry_with_jpa.utilities.FileUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,7 +20,6 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 @Service
 @Transactional(readOnly = true)
@@ -37,21 +33,14 @@ public class DocumentServiceImpl implements DocumentService {
     private PersonService personService;
 
     @Override
-    public List<DocumentResponse> getAllDocumentsByFiscalCode(String fiscalCode) {
+    public List<TypeOfDoc> getAllDocumentsByFiscalCode(String fiscalCode) {
         Person person = personService.getPersonByFiscalCode(fiscalCode);
-        List<DocumentResponse> presentedDocuments = new ArrayList<>();
+        List<TypeOfDoc> presentedDocuments = new ArrayList<>();
         List<Document> persistenceDocuments = repo.findAllByPerson(person);
 
-        for (Document persistent : persistenceDocuments){
+        for (Document persistent : persistenceDocuments) {
 
-            DecodedWrapper wrappedFile = new DecodedWrapper();
-            wrappedFile.setDecoded(fileUtil.download(persistent.getFile()));
-
-            DocumentResponse presentedDocument = new DocumentResponse();
-
-            BeanUtils.copyProperties(persistent, presentedDocument);
-            presentedDocument.setFile(wrappedFile);
-            presentedDocuments.add(presentedDocument);
+           presentedDocuments.add(persistent.getTypeOfDoc());
         }
         return presentedDocuments;
     }
@@ -72,6 +61,28 @@ public class DocumentServiceImpl implements DocumentService {
             newDocument.setPerson(person);
             repo.save(newDocument);
         }
+    }
+
+    @Override
+    @Transactional
+    public void deleteDocumentByFiscalCodeAndTypeOfDoc(String fiscalCode, String doc) throws IOException {
+        Person person = personService.getPersonByFiscalCode(fiscalCode);
+        byte [] document = getDocumentByFiscalCodeAndTypeOfDoc(fiscalCode,doc);
+
+        if (document != null) {
+            repo.deleteDocumentByPersonAndTypeOfDoc(person, TypeOfDoc.valueOf(doc));
+        } else {
+            throw new IOException();
+        }
+    }
+
+    @Override
+    public byte[] getDocumentByFiscalCodeAndTypeOfDoc(String fiscalCode, String doc) {
+       Person person = personService.getPersonByFiscalCode(fiscalCode);
+       Document document = repo.findByPersonAndTypeOfDoc(person, TypeOfDoc.valueOf(doc));
+       DecodedWrapper response = new DecodedWrapper();
+       response.setDecoded(fileUtil.download(document.getFile()));
+        return response.getDecoded();
     }
 
     // TODO : implementare logica della service;
